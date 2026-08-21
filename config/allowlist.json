@@ -1,0 +1,8 @@
+{
+  "patterns": [
+    "AKIAIOSFODNN7EXAMPLE",
+    "^(changeme|example|placeholder|dummy|redacted)$",
+    "^<[^>]+>$",
+    "^00000000-0000-0000-0000-000000000000$"
+  ]
+}
