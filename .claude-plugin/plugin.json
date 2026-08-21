@@ -1,0 +1,9 @@
+{
+  "name": "claude-guardrail",
+  "description": "Blocks likely secrets (API keys, passwords, private keys, tokens) from reaching prompts or Bash/Write/Edit tool calls.",
+  "version": "0.1.0",
+  "author": {
+    "name": "SanaVarsi"
+  },
+  "license": "MIT"
+}
