@@ -9,6 +9,7 @@ keys), and blocks the action if something matches.
 
 import json
 import math
+import os
 import re
 import sys
 from collections import Counter
@@ -37,14 +38,37 @@ UUID_SHAPE = re.compile(
 )
 ENTROPY_THRESHOLD = 4.3
 
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+ALLOWLIST_PATH = os.path.join(SCRIPT_DIR, "..", "config", "allowlist.json")
+
+
+def load_allowlist():
+    """Read config/allowlist.json. If it's missing or broken, use no patterns."""
+    try:
+        with open(ALLOWLIST_PATH) as f:
+            data = json.load(f)
+        return [re.compile(p, re.IGNORECASE) for p in data.get("patterns", [])]
+    except (FileNotFoundError, json.JSONDecodeError):
+        return []
+
+
+ALLOWLIST_PATTERNS = load_allowlist()
+
+
+def is_allowlisted(value: str) -> bool:
+    """Is this value on the known-safe list?"""
+    return any(p.search(value) for p in ALLOWLIST_PATTERNS)
+
 
 def mask(value: str) -> str:
+    """Hide most of a matched secret so we never print the real value."""
     if len(value) <= 8:
         return "****"
     return f"{value[:4]}...{value[-4:]}"
 
 
 def shannon_entropy(text: str) -> float:
+    """How random a chunk of text looks. Higher = more random/scrambled."""
     if not text:
         return 0.0
     counts = Counter(text)
@@ -55,22 +79,28 @@ def shannon_entropy(text: str) -> float:
 
 
 def text_to_scan(payload: dict) -> str:
+    """Pick out the right text depending on which hook fired."""
     if payload.get("hook_event_name") == "UserPromptSubmit":
         return payload.get("user_input") or payload.get("prompt") or ""
     return json.dumps(payload.get("tool_input") or "")
 
 
 def find_named_secrets(text: str):
+    """Check text against every known secret shape, return what matched."""
     findings = []
     matched_values = set()
     for label, pattern in PATTERNS:
         for match in pattern.finditer(text):
-            findings.append(f"{label}: {mask(match.group())}")
-            matched_values.add(match.group())
+            value = match.group()
+            matched_values.add(value)
+            if is_allowlisted(value):
+                continue
+            findings.append(f"{label}: {mask(value)}")
     return findings, matched_values
 
 
 def find_high_entropy_strings(text: str, already_matched: set) -> list:
+    """Catch random-looking text that didn't match any known shape."""
     findings = []
     for chunk in CANDIDATE_CHUNK.findall(text):
         if chunk in already_matched:
@@ -78,6 +108,8 @@ def find_high_entropy_strings(text: str, already_matched: set) -> list:
         if HEX_ONLY.match(chunk):
             continue
         if UUID_SHAPE.match(chunk):
+            continue
+        if is_allowlisted(chunk):
             continue
         if shannon_entropy(chunk) >= ENTROPY_THRESHOLD:
             findings.append(f"High-entropy string (possible secret): {mask(chunk)}")
