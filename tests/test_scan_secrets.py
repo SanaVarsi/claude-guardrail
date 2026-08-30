@@ -89,3 +89,24 @@ def test_hash_passes():
 def test_allowlisted_example_key_passes():
     output = run_scanner(user_input="example: AKIAIOSFODNN7EXAMPLE")
     assert output == ""
+
+
+# --- regressions found while dogfooding (issue #15) ---
+
+def test_uuid_embedded_in_longer_path_passes():
+    output = run_scanner(
+        user_input="reading session_1b6a9646-7abc-47a9-bbec-9d48e4929c3f_transcript"
+    )
+    assert output == ""
+
+
+def test_claude_message_id_passes():
+    output = run_scanner(user_input="message id is msg_011CeBwmJKFdPCQkpjg5MNws")
+    assert output == ""
+
+
+def test_dated_filename_passes():
+    output = run_scanner(
+        user_input="saving docs/2026-08-26-token-ledger-v1-design.md"
+    )
+    assert output == ""
