@@ -34,7 +34,7 @@ PATTERNS = [
 CANDIDATE_CHUNK = re.compile(r"[A-Za-z0-9+/_-]{20,}")
 HEX_ONLY = re.compile(r"^[0-9a-fA-F]+$")
 UUID_SHAPE = re.compile(
-    r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+    r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
 )
 ENTROPY_THRESHOLD = 4.3
 
@@ -107,7 +107,7 @@ def find_high_entropy_strings(text: str, already_matched: set) -> list:
             continue
         if HEX_ONLY.match(chunk):
             continue
-        if UUID_SHAPE.match(chunk):
+        if UUID_SHAPE.search(chunk):
             continue
         if is_allowlisted(chunk):
             continue
