@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Least-privilege default; jobs escalate only what they individually need.
+permissions:
+  contents: read
+
+jobs:
+  gitleaks:
+    # Full-history secret scan via gitleaks-action, which needs full git
+    # history (fetch-depth: 0) to see past commits, not just HEAD.
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # gitleaks-action calls the GitHub API to list the PR's commits and
+      # scope the scan to them on a pull_request event -- without this,
+      # the default token has no pull-requests scope and the call 403s.
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.12"
+
+      - name: Install pytest
+        run: pip install pytest
+
+      - name: Test
+        run: pytest -v
